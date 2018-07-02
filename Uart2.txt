@@ -1,0 +1,128 @@
+#include "LPC17xx.h"
+
+
+
+
+
+
+
+
+#define PinSelection0   LPC_PINCON->PINSEL0 
+#define SystemFrequency 12000000 
+
+
+#define   DLL0            LPC_UART0->DLL
+#define   DLM0            LPC_UART0->DLM
+
+#define   DLL1            LPC_UART1->DLL
+#define   DLM1            LPC_UART1->DLM
+
+#define   DLL2            LPC_UART2->DLL
+#define   DLM2            LPC_UART2->DLM
+
+#define   DLL3            LPC_UART3->DLL
+#define   DLM3            LPC_UART3->DLM
+
+#define SendTx            LPC_UART2->THR
+#define RecievedRx        LPC_UART2->RBR
+
+void UART2_init(uint32_t baudrate)
+  {
+		/* (9600);   
+    (19200);   
+    (38400);   
+    (115200);*/
+		
+		 uint32_t   ClkBitValue,Plk,BaudrateRegValue;
+		
+		/*the rate of the clock signal
+    that will be supplied to the corresponding peripheral as specified*/
+		//LPC_SC->PCLKSEL1 =0;    //16:17 uart 2 00 means clk/4
+		
+		
+		LPC_SC->PCONP |= 1 << 24 ; // UART 2 power/clock control bit.
+		
+		//-----------------PinSelection 
+    PinSelection0 |= 1<< 20 ; //  p0.10  setting as TX2 
+	  PinSelection0 |= 1<< 22 ; //  p0.11 setting as RX2 
+		//---------------------------------
+		//LPC_UART2->FCR = 1<<1 | 1<<2 | 1<<3 ; // FIFO enable - RX TX FIFO
+    //LPC_UART2->FCR  = 0x07;
+	//-----------------------------------
+	
+	LPC_UART2->LCR |=  3<<0;   // 8-bit character length   - 1 stop bit No parity  // Line Control Register 
+	LPC_UART2->LCR |=  1<<7;   //1 DLAB Enable access to Divisor Latches.
+	
+		//Peripheral Clock Selection register bit values
+		
+		ClkBitValue = (LPC_SC->PCLKSEL1 >> 16) & 0x03;
+		
+		switch (ClkBitValue) 
+		{
+				case 0x00:
+            Plk = SystemFrequency/4;
+            break;
+        case 0x01:
+            Plk = SystemFrequency;
+            break; 
+        case 0x02:
+            Plk = SystemFrequency/2;
+            break; 
+        case 0x03:
+            Plk = SystemFrequency/8;
+            break;
+		}
+		
+		  BaudrateRegValue  = Plk  / (16 * baudrate );
+		  DLL2 =  BaudrateRegValue & 0xFF ;
+      DLM2 = (BaudrateRegValue >> 8) & 0xFF;
+		
+		 LPC_UART2->LCR = 0x03;    // Clear DLAB after setting DLL,DLM
+		 LPC_UART2->FCR  = 0x07;
+  }
+  
+	
+	
+	
+	int UART2_SendByte (int ucData)
+{
+	while (!(LPC_UART2->LSR >>5 & 0x01)); // when transfer date set THRE
+	{
+    return (LPC_UART2->THR = ucData);
+	}
+}
+	
+	
+int main ()
+   {     
+    	//int i;
+		 // char a[]="\n\r Testing Uart";
+		 
+	    UART2_init(19200);
+		  
+	    
+	
+
+	/*for (i= 0;i < 10 ;i++)
+		{
+			UartTx(i);
+		}*/
+	  UART2_SendByte ('s');
+		UART2_SendByte ('a');
+		UART2_SendByte ('l');
+		UART2_SendByte ('a');
+		UART2_SendByte ('m');
+	
+	
+	
+	while  (1)
+	{
+		//UART2_SendByte('s');
+		
+	}
+	
+	
+	
+	
+	
+     }
